@@ -1,0 +1,58 @@
+name: Python CI
+
+on:
+  [push, pull_request]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry
+      run: |
+        pip install --upgrade pip
+        pip install poetry
+
+    - name: Install dependencies
+      run: poetry install
+
+    - name: Run unittests
+      run: |
+        poetry run coverage run -m unittest discover -s tests -p 'test_*.py'
+        poetry run coverage report
+        poetry run coverage html
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v2
+      with:
+        name: coverage-report
+        path: htmlcov/
+
+    - name: Check imports
+      run: poetry run isort .
+
+    - name: Check code linting
+      run: poetry run pylint -rn -sn src/
+
+    - name: Check code type hints
+      run: poetry run mypy --strict --disallow-untyped-defs --disallow-incomplete-defs src/
+
+    - name: Check code style
+      run: poetry run flake8
+
+    - name: Check code formatting
+      run: poetry run black --check .
+
+    - name: Check code documentation
+      run: poetry run pydocstyle src/
+
+    - name: Check unused code parts
+      run: poetry run vulture src/
